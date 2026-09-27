@@ -1,19 +1,17 @@
-import * as DocumentPicker from "expo-document-picker";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { api, messageOf, uploadDocument } from "../lib/api";
+import { api, messageOf } from "../lib/api";
 import { formatNumber } from "../lib/format";
-import { radius, useTheme } from "../lib/theme";
+import { font, radius, useTheme } from "../lib/theme";
 import type { Document, DocumentPages, Evidence } from "../lib/types";
-import { Button, Field, Heading, Input, Loading, Muted, Notice, Panel, ProcessingBadge, Row } from "./ui";
+import { useDocumentUpload } from "../lib/useDocumentUpload";
+import { DocumentCard } from "./cards";
+import { UploadStatus } from "./UploadStatus";
+import { Button, Card, Field, Heading, IconTile, Input, Loading, Mono, Muted, Notice, TextLink, notify, tap, type IconName } from "./ui";
 
 type Mode = "menu" | "paste" | "library" | "pick";
-type Upload =
-  | { kind: "idle" }
-  | { kind: "uploading"; name: string }
-  | { kind: "processing"; name: string }
-  | { kind: "failed"; name: string; message: string };
 
 interface Props {
   claimId: string;
@@ -21,67 +19,67 @@ interface Props {
   onAttached: () => void;
 }
 
-export function EvidenceCapture({ claimId, initialDocumentId, onAttached }: Props) {
+function Option({ icon, title, body, onPress, disabled }: { icon: IconName; title: string; body: string; onPress: () => void; disabled?: boolean }) {
   const t = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      disabled={disabled}
+      onPress={() => {
+        tap();
+        onPress();
+      }}
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: radius.control + 4, borderWidth: 1, borderColor: t.line, backgroundColor: pressed ? t.surfaceMuted : t.surface, opacity: disabled ? 0.5 : 1 })}
+    >
+      <IconTile icon={icon} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ fontFamily: font.semi, fontSize: 15.5, color: t.ink }}>{title}</Text>
+        <Muted style={{ fontSize: 13, lineHeight: 18 }}>{body}</Muted>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={t.inkTertiary} />
+    </Pressable>
+  );
+}
+
+function SubHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <Heading style={{ flex: 1 }} numberOfLines={1}>{title}</Heading>
+      <TextLink title="Cancel" onPress={onBack} />
+    </View>
+  );
+}
+
+export function EvidenceCapture({ claimId, initialDocumentId, onAttached }: Props) {
   const [mode, setMode] = useState<Mode>(initialDocumentId ? "pick" : "menu");
   const [picking, setPicking] = useState<Document | null>(null);
-  const [upload, setUpload] = useState<Upload>({ kind: "idle" });
   const [library, setLibrary] = useState<Document[] | null>(null);
   const [libraryError, setLibraryError] = useState<string | null>(null);
+  const { upload, busy, pickFile } = useDocumentUpload((doc) => {
+    setPicking(doc);
+    setMode("pick");
+  });
 
   useEffect(() => {
     if (!initialDocumentId) return;
-    api<Document>(`/documents/${initialDocumentId}`).then(setPicking).catch(() => setMode("menu"));
+    let cancelled = false;
+    api<Document>(`/documents/${initialDocumentId}`)
+      .then((d) => !cancelled && setPicking(d))
+      .catch(() => !cancelled && setMode("menu"));
+    return () => {
+      cancelled = true;
+    };
   }, [initialDocumentId]);
 
-  const pickFile = async () => {
-    const res = await DocumentPicker.getDocumentAsync({ type: ["application/pdf", "text/plain", "text/markdown", "text/csv"], copyToCacheDirectory: true, multiple: false });
-    if (res.canceled || !res.assets[0]) return;
-    const asset = res.assets[0];
-    if (asset.size && asset.size > 50 * 1024 * 1024) {
-      setUpload({ kind: "failed", name: asset.name, message: "That file is over 50 MB." });
-      return;
-    }
-    setUpload({ kind: "uploading", name: asset.name });
-    try {
-      const doc = await uploadDocument<Document>({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType });
-      // The response carries the real processing status; never assume success.
-      if (doc.processing_status === "processed") {
-        setUpload({ kind: "idle" });
-        setPicking(doc);
-        setMode("pick");
-      } else if (doc.processing_status === "failed") {
-        setUpload({ kind: "failed", name: asset.name, message: "The file was received but its text could not be extracted. Try a different copy." });
-      } else {
-        setUpload({ kind: "processing", name: asset.name });
-        await poll(doc.id, asset.name);
-      }
-    } catch (e) {
-      setUpload({ kind: "failed", name: asset.name, message: messageOf(e) });
-    }
+  const toMenu = () => {
+    setPicking(null);
+    setMode("menu");
   };
-
-  const poll = async (id: string, name: string) => {
-    for (let i = 0; i < 30; i++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      try {
-        const doc = await api<Document>(`/documents/${id}`);
-        if (doc.processing_status === "processed") {
-          setUpload({ kind: "idle" });
-          setPicking(doc);
-          setMode("pick");
-          return;
-        }
-        if (doc.processing_status === "failed") {
-          setUpload({ kind: "failed", name, message: "Processing failed for this file. Try a different copy." });
-          return;
-        }
-      } catch (e) {
-        setUpload({ kind: "failed", name, message: messageOf(e) });
-        return;
-      }
-    }
-    setUpload({ kind: "failed", name, message: "Processing is taking longer than expected. Check Documents later." });
+  const attached = () => {
+    notify("success");
+    toMenu();
+    onAttached();
   };
 
   const openLibrary = async () => {
@@ -94,72 +92,44 @@ export function EvidenceCapture({ claimId, initialDocumentId, onAttached }: Prop
     }
   };
 
-  if (mode === "pick" && picking) {
-    return (
-      <PassagePicker
-        claimId={claimId}
-        document={picking}
-        onDone={() => {
-          setPicking(null);
-          setMode("menu");
-          onAttached();
-        }}
-        onCancel={() => {
-          setPicking(null);
-          setMode("menu");
-        }}
-      />
-    );
+  if (mode === "pick") {
+    if (!picking) return <Card><Loading label="Opening the document…" /></Card>;
+    return <PassagePicker claimId={claimId} document={picking} onDone={attached} onCancel={toMenu} />;
   }
 
-  if (mode === "paste") {
-    return <PasteForm claimId={claimId} onDone={() => { setMode("menu"); onAttached(); }} onCancel={() => setMode("menu")} />;
-  }
+  if (mode === "paste") return <PasteForm claimId={claimId} onDone={attached} onCancel={toMenu} />;
 
   if (mode === "library") {
+    const usable = library?.filter((d) => d.processing_status === "processed") ?? [];
     return (
-      <Panel style={{ gap: 12 }}>
-        <Heading>From your documents</Heading>
-        {libraryError ? <Notice>{libraryError}</Notice> : null}
+      <Card style={{ gap: 14 }}>
+        <SubHeader title="Choose from your library" onBack={toMenu} />
+        {libraryError ? <Notice action={<Button title="Try again" icon="refresh" variant="secondary" onPress={openLibrary} />}>{libraryError}</Notice> : null}
         {library === null && !libraryError ? <Loading /> : null}
-        {library && library.length === 0 ? <Muted>You have not uploaded any documents yet.</Muted> : null}
-        {library?.map((d, i) => (
-          <Row key={d.id} last={i === library.length - 1} onPress={d.processing_status === "processed" ? () => { setPicking(d); setMode("pick"); } : undefined}>
-            <Text numberOfLines={1} style={{ color: t.ink, fontSize: 15, fontWeight: "500" }}>{d.filename}</Text>
-            <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-              <Muted style={{ textTransform: "uppercase" }}>{d.document_type}</Muted>
-              <ProcessingBadge status={d.processing_status} />
-            </View>
-          </Row>
-        ))}
-        <Button title="Back" variant="ghost" onPress={() => setMode("menu")} />
-      </Panel>
+        {library && usable.length === 0 ? <Muted>No processed documents yet. Upload a file or paste text instead.</Muted> : null}
+        <View style={{ gap: 10 }}>
+          {usable.map((d) => (
+            <DocumentCard
+              key={d.id}
+              d={d}
+              onPress={() => {
+                setPicking(d);
+                setMode("pick");
+              }}
+            />
+          ))}
+        </View>
+      </Card>
     );
   }
 
   return (
-    <Panel style={{ gap: 12 }}>
-      <Heading>Add evidence</Heading>
-      {upload.kind === "uploading" || upload.kind === "processing" ? (
-        <View accessibilityLiveRegion="polite" style={{ gap: 6 }}>
-          <Text numberOfLines={1} style={{ color: t.ink, fontWeight: "500" }}>{upload.name}</Text>
-          <Loading label={upload.kind === "uploading" ? "Uploading… large files can take a moment" : "Processing… extracting pages and text"} />
-        </View>
-      ) : null}
-      {upload.kind === "failed" ? (
-        <Notice action={<Button title="Choose another file" variant="secondary" onPress={pickFile} />}>
-          Upload failed for {upload.name}. {upload.message}
-        </Notice>
-      ) : null}
-      {upload.kind === "idle" || upload.kind === "failed" ? (
-        <View style={{ gap: 8 }}>
-          <Button title="Pick a PDF or file" onPress={pickFile} />
-          <Button title="Paste text" variant="secondary" onPress={() => setMode("paste")} />
-          <Button title="From your documents" variant="secondary" onPress={openLibrary} />
-        </View>
-      ) : null}
-      <Muted style={{ fontSize: 12 }}>PDF, TXT, MD or CSV, up to 50 MB. Pages are extracted so the verdict can cite them.</Muted>
-    </Panel>
+    <View style={{ gap: 10 }}>
+      <UploadStatus upload={upload} onRetry={pickFile} />
+      <Option icon="cloud-upload-outline" title="Upload a file" body="PDF, TXT, MD or CSV, up to 50 MB" onPress={pickFile} disabled={busy} />
+      <Option icon="clipboard-outline" title="Paste a passage" body="Copy the exact text from your source" onPress={() => setMode("paste")} disabled={busy} />
+      <Option icon="folder-open-outline" title="Choose from your library" body="Reuse a document you already added" onPress={openLibrary} disabled={busy} />
+    </View>
   );
 }
 
@@ -196,20 +166,17 @@ function PasteForm({ claimId, onDone, onCancel }: { claimId: string; onDone: () 
   };
 
   return (
-    <Panel style={{ gap: 12 }}>
-      <Heading>Paste text</Heading>
+    <Card style={{ gap: 16 }}>
+      <SubHeader title="Paste a passage" onBack={onCancel} />
       {error ? <Notice>{error}</Notice> : null}
-      <Field label="Where is this from?" hint="A short label, such as the paper title or URL. Optional.">
-        <Input value={label} onChangeText={setLabel} maxLength={255} placeholder="Recovery trial, 2024, section 3.2…" />
-      </Field>
       <Field label="Evidence passage" error={fieldError} hint="Paste the exact text. It is stored as its own source.">
-        <Input value={content} onChangeText={setContent} multiline placeholder="Median time to recovery was 4.1 days shorter in the treatment arm…" style={{ minHeight: 140 }} />
+        <Input invalid={Boolean(fieldError)} value={content} onChangeText={setContent} multiline autoFocus placeholder="Median time to recovery was 4.1 days shorter in the treatment arm…" style={{ minHeight: 150 }} />
       </Field>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <Button title={busy ? "Attaching…" : "Attach as evidence"} loading={busy} onPress={submit} style={{ flex: 1 }} />
-        <Button title="Cancel" variant="ghost" onPress={onCancel} disabled={busy} />
-      </View>
-    </Panel>
+      <Field label="Where is this from?" hint="A short label, such as the paper title or URL. Optional.">
+        <Input icon="pricetag-outline" value={label} onChangeText={setLabel} maxLength={255} placeholder="Recovery trial, 2024, section 3.2…" />
+      </Field>
+      <Button title={busy ? "Attaching…" : "Attach as evidence"} icon="attach" loading={busy} onPress={submit} />
+    </Card>
   );
 }
 
@@ -231,7 +198,10 @@ function PassagePicker({ claimId, document, onDone, onCancel }: { claimId: strin
       .then((p) => {
         if (cancelled) return;
         setPages(p);
-        if (p.pages[0]) setContent(p.pages[0].text.slice(0, 50000));
+        if (p.pages[0]) {
+          setPage(p.pages[0].page_number);
+          setContent(p.pages[0].text.slice(0, 50000));
+        }
       })
       .catch((e) => !cancelled && setLoadError(messageOf(e)));
     return () => {
@@ -242,6 +212,7 @@ function PassagePicker({ claimId, document, onDone, onCancel }: { claimId: strin
   const choose = (n: number) => {
     const p = pages?.pages.find((x) => x.page_number === n);
     if (!p) return;
+    tap();
     setPage(n);
     setContent(p.text.slice(0, 50000));
   };
@@ -269,45 +240,40 @@ function PassagePicker({ claimId, document, onDone, onCancel }: { claimId: strin
   };
 
   if (loadError) return <Notice action={<Button title="Back" variant="secondary" onPress={onCancel} />}>{loadError}</Notice>;
-  if (!pages) return <Panel><Loading label="Loading pages…" /></Panel>;
+  if (!pages) return <Card><Loading label="Loading pages…" /></Card>;
 
   return (
-    <Panel style={{ gap: 12 }}>
-      <Heading numberOfLines={1}>{document.filename}</Heading>
-      <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: "/(app)/documents/[id]", params: { id: document.id, page: String(page) } })}>
-        <Text style={{ color: t.inkSecondary, textDecorationLine: "underline" }}>Open full document</Text>
-      </Pressable>
+    <Card style={{ gap: 16 }}>
+      <SubHeader title="Pick the passage" onBack={onCancel} />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: t.surfaceMuted, borderRadius: radius.control + 2, padding: 12 }}>
+        <Ionicons name="document-text" size={20} color={t.accent} />
+        <Text numberOfLines={1} style={{ flex: 1, fontFamily: font.medium, fontSize: 14.5, color: t.ink }}>{document.filename}</Text>
+        <TextLink title="Open" icon="open-outline" onPress={() => router.push({ pathname: "/(app)/documents/[id]", params: { id: document.id, page: String(page) } })} />
+      </View>
       {error ? <Notice>{error}</Notice> : null}
       {pages.total_pages > 1 ? (
-        <View style={{ gap: 6 }}>
-          <Text style={{ fontSize: 14, fontWeight: "500", color: t.ink }}>Page</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            {pages.pages.map((p) => (
-              <Pressable
-                key={p.id}
-                accessibilityRole="button"
-                accessibilityState={{ selected: p.page_number === page }}
-                onPress={() => choose(p.page_number)}
-                style={{ height: 36, paddingHorizontal: 12, borderRadius: radius.pill, justifyContent: "center", backgroundColor: p.page_number === page ? t.ink : t.surfaceMuted }}
-              >
-                <Text style={{ color: p.page_number === page ? t.onInk : t.ink, fontVariant: ["tabular-nums"] }}>{p.page_number}</Text>
-              </Pressable>
-            ))}
+        <View style={{ gap: 8 }}>
+          <Text style={{ fontFamily: font.medium, fontSize: 14, color: t.ink }}>Page <Text style={{ color: t.inkTertiary }}>· {pages.total_pages} in total</Text></Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {pages.pages.map((p) => {
+              const on = p.page_number === page;
+              return (
+                <Pressable key={p.id} accessibilityRole="button" accessibilityLabel={`Page ${p.page_number}`} accessibilityState={{ selected: on }} onPress={() => choose(p.page_number)} style={{ minWidth: 46, height: 44, paddingHorizontal: 14, borderRadius: radius.control, alignItems: "center", justifyContent: "center", backgroundColor: on ? t.ink : t.surfaceMuted }}>
+                  <Text style={{ fontFamily: font.monoMedium, fontSize: 14, color: on ? t.onInk : t.ink }}>{p.page_number}</Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
-          <Muted style={{ fontSize: 12 }}>{pages.total_pages} pages. The page text is loaded below; trim it to the relevant passage.</Muted>
         </View>
       ) : null}
-      <Field label="Passage to use as evidence" error={fieldError} hint="Keep only the sentences that bear on the claim.">
-        <Input value={content} onChangeText={setContent} multiline style={{ minHeight: 180 }} />
+      <Field label="Passage to use as evidence" error={fieldError} hint="The page text is loaded for you. Trim it to the sentences that bear on the claim.">
+        <Input invalid={Boolean(fieldError)} value={content} onChangeText={setContent} multiline style={{ minHeight: 190, fontSize: 15, lineHeight: 22 }} />
       </Field>
-      <Field label="Section (optional)">
-        <Input value={section} onChangeText={setSection} maxLength={255} placeholder="Results…" />
+      <Mono>{formatNumber(content.length)} characters selected</Mono>
+      <Field label="Section" hint="Optional. For example: Results.">
+        <Input icon="bookmark-outline" value={section} onChangeText={setSection} maxLength={255} placeholder="Results…" />
       </Field>
-      <Muted style={{ fontSize: 12 }}>{formatNumber(content.length)} characters selected</Muted>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <Button title={busy ? "Attaching…" : "Attach as evidence"} loading={busy} onPress={submit} style={{ flex: 1 }} />
-        <Button title="Cancel" variant="ghost" onPress={onCancel} disabled={busy} />
-      </View>
-    </Panel>
+      <Button title={busy ? "Attaching…" : "Attach as evidence"} icon="attach" loading={busy} onPress={submit} />
+    </Card>
   );
 }

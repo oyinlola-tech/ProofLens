@@ -1,6 +1,6 @@
 import { Redirect, Stack } from "expo-router";
 import { useSession } from "../../src/lib/session";
-import { useTheme } from "../../src/lib/theme";
+import { font, useTheme } from "../../src/lib/theme";
 
 export default function AppLayout() {
   const { ready, user } = useSession();
@@ -11,17 +11,19 @@ export default function AppLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: t.canvas },
         headerTintColor: t.ink,
-        headerTitleStyle: { fontWeight: "600" },
+        headerTitleStyle: { fontFamily: font.displaySemi, fontSize: 18 },
+        headerTitleAlign: "center",
         headerShadowVisible: false,
         contentStyle: { backgroundColor: t.canvas },
         headerBackButtonDisplayMode: "minimal",
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="claims/new" options={{ title: "New verification" }} />
-      <Stack.Screen name="claims/[id]" options={{ title: "Claim" }} />
-      <Stack.Screen name="documents/[id]" options={{ title: "Document" }} />
-      <Stack.Screen name="verifications/[id]" options={{ title: "Result" }} />
+      <Stack.Screen name="claims/new" options={{ title: "New check" }} />
+      <Stack.Screen name="claims/[id]" options={{ title: "Evidence" }} />
+      <Stack.Screen name="documents/[id]" options={{ title: "Source" }} />
+      <Stack.Screen name="verifications/[id]" options={{ title: "Verdict" }} />
+      <Stack.Screen name="guide" options={{ title: "Guide" }} />
     </Stack>
   );
 }

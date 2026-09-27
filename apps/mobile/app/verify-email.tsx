@@ -1,11 +1,12 @@
-import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
+import { AuthShell } from "../src/components/AuthShell";
+import { Button, Card, Field, Input, Muted, Notice, TextLink, notify } from "../src/components/ui";
 import { api, ApiError, messageOf } from "../src/lib/api";
 import { useSession } from "../src/lib/session";
+import { font, radius, useTheme } from "../src/lib/theme";
 import type { AuthResponse, VerificationPending } from "../src/lib/types";
-import { Body, Button, Field, Input, Muted, Notice, Screen, Title } from "../src/components/ui";
-import { radius, useTheme } from "../src/lib/theme";
 
 const CODE_LENGTH = 6;
 type OtpState = "idle" | "invalid" | "expired" | "locked" | "rate_limited";
@@ -45,9 +46,11 @@ export default function VerifyEmail() {
     try {
       const auth = await api<AuthResponse>("/auth/verify-otp", { method: "POST", body: { email: address, otp: code }, anonymous: true });
       await signIn(auth.token);
+      notify("success");
       router.replace("/(app)/(tabs)");
     } catch (e) {
       submittedRef.current = "";
+      notify("error");
       if (e instanceof ApiError && e.code === "OTP_EXPIRED") {
         setOtpState("expired");
         setError("That code has expired. Request a new one below.");
@@ -105,83 +108,83 @@ export default function VerifyEmail() {
 
   const boxes = Array.from({ length: CODE_LENGTH }, (_, i) => otp[i] ?? "");
 
+  const address = email.trim().toLowerCase();
+
   return (
-    <Screen>
-      <View style={{ gap: 20, paddingTop: 32 }}>
-        <Title>Confirm your email</Title>
-        <Muted>
+    <AuthShell
+      title="Check your email"
+      fallback="/(auth)/login"
+      subtitle={
+        <Muted style={{ fontSize: 15.5, lineHeight: 22 }}>
           {sent ? (
-            <>We sent a {CODE_LENGTH}-digit code to <Text style={{ color: t.ink, fontWeight: "600" }}>{email.trim().toLowerCase()}</Text>. Enter it below to finish creating your account.</>
+            <>We sent a {CODE_LENGTH}-digit code to <Text style={{ color: t.ink, fontFamily: font.semi }}>{address}</Text>. Enter it to finish creating your account.</>
           ) : (
             <>Enter the {CODE_LENGTH}-digit code from your ProofLens verification email.</>
           )}
         </Muted>
-        {error ? <Notice>{error}</Notice> : null}
-        {editingEmail ? (
-          <Field label="Email">
-            <Input value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" placeholder="you@example.org" />
-          </Field>
-        ) : (
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, backgroundColor: t.surfaceMuted, borderRadius: radius.control, paddingHorizontal: 12, paddingVertical: 10 }}>
-            <Text style={{ color: t.ink, flexShrink: 1 }} numberOfLines={1}>{email.trim().toLowerCase()}</Text>
-            <Pressable accessibilityRole="button" onPress={() => setEditingEmail(true)}>
-              <Text style={{ color: t.inkSecondary, textDecorationLine: "underline" }}>Change</Text>
-            </Pressable>
-          </View>
-        )}
-        <Field label="Verification code" hint={needsNewCode ? "Request a new code below, then enter it here." : "The code expires 10 minutes after it was sent."}>
-          <Pressable onPress={() => inputRef.current?.focus()} accessibilityLabel={`${CODE_LENGTH}-digit verification code`}>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {boxes.map((digit, i) => {
-                const active = !needsNewCode && otp.length === i;
-                return (
-                  <View
-                    key={i}
-                    style={{
-                      flex: 1,
-                      height: 56,
-                      borderRadius: radius.control,
-                      borderWidth: active ? 2 : 1,
-                      borderColor: otpState === "invalid" ? t.contradicted : active ? t.accent : t.lineStrong,
-                      backgroundColor: t.surface,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      opacity: needsNewCode ? 0.5 : 1,
-                    }}
-                  >
-                    <Text style={{ fontSize: 24, fontWeight: "600", color: t.ink, fontVariant: ["tabular-nums"] }}>{digit}</Text>
-                  </View>
-                );
-              })}
-            </View>
-            <TextInput
-              ref={inputRef}
-              value={otp}
-              onChangeText={onChangeOtp}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              autoComplete="one-time-code"
-              maxLength={CODE_LENGTH}
-              editable={!busy && !needsNewCode}
-              autoFocus={!editingEmail}
-              caretHidden
-              style={{ position: "absolute", opacity: 0, width: "100%", height: 56 }}
-            />
-          </Pressable>
+      }
+    >
+      {error ? <Notice>{error}</Notice> : null}
+      {editingEmail ? (
+        <Field label="Email">
+          <Input icon="mail-outline" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" placeholder="you@example.org" />
         </Field>
-        <Button title={busy ? "Verifying…" : "Verify and continue"} loading={busy} disabled={otp.length !== CODE_LENGTH || needsNewCode} onPress={() => confirm()} />
-        <View style={{ borderTopWidth: 1, borderTopColor: t.line, paddingTop: 20, gap: 10 }}>
-          <Body style={{ fontWeight: "600" }}>Didn&rsquo;t get the code?</Body>
-          <Muted>Check your spam folder. Requesting a new code cancels the previous one.</Muted>
-          <Button title={remaining > 0 ? `Resend code in ${remaining}s` : "Resend code"} variant="secondary" loading={resending} disabled={remaining > 0 || !email.trim()} onPress={resend} />
-          <Muted>
-            Already confirmed?{" "}
-            <Link href="/(auth)/login" style={{ color: t.ink, textDecorationLine: "underline" }}>
-              Log in
-            </Link>
-          </Muted>
+      ) : (
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, backgroundColor: t.surfaceMuted, borderRadius: radius.control + 2, paddingHorizontal: 14, minHeight: 50 }}>
+          <Text style={{ color: t.ink, fontFamily: font.medium, fontSize: 15, flexShrink: 1 }} numberOfLines={1}>{address}</Text>
+          <TextLink title="Change" onPress={() => setEditingEmail(true)} />
         </View>
+      )}
+      <Field label="Verification code" hint={needsNewCode ? "Request a new code below, then enter it here." : "The code expires 10 minutes after it was sent."}>
+        <Pressable onPress={() => inputRef.current?.focus()} accessibilityLabel={`${CODE_LENGTH}-digit verification code`}>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {boxes.map((digit, i) => {
+              const active = !needsNewCode && otp.length === i;
+              return (
+                <View
+                  key={i}
+                  style={{
+                    flex: 1,
+                    height: 62,
+                    borderRadius: radius.control + 2,
+                    borderWidth: active ? 2 : 1,
+                    borderColor: otpState === "invalid" ? t.contradicted : active ? t.accent : digit ? t.ink : t.lineStrong,
+                    backgroundColor: active ? t.accentSoft : t.surface,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity: needsNewCode ? 0.5 : 1,
+                  }}
+                >
+                  <Text style={{ fontSize: 26, fontFamily: font.display, color: t.ink, fontVariant: ["tabular-nums"] }}>{digit}</Text>
+                </View>
+              );
+            })}
+          </View>
+          <TextInput
+            ref={inputRef}
+            value={otp}
+            onChangeText={onChangeOtp}
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="one-time-code"
+            maxLength={CODE_LENGTH}
+            editable={!busy && !needsNewCode}
+            autoFocus={!editingEmail}
+            caretHidden
+            style={{ position: "absolute", opacity: 0, width: "100%", height: 62 }}
+          />
+        </Pressable>
+      </Field>
+      <Button title={busy ? "Verifying…" : "Verify and continue"} size="lg" loading={busy} disabled={otp.length !== CODE_LENGTH || needsNewCode} onPress={() => confirm()} />
+      <Card flat style={{ gap: 10 }}>
+        <Text style={{ fontFamily: font.semi, fontSize: 15, color: t.ink }}>Didn’t get the code?</Text>
+        <Muted>Check your spam folder. Requesting a new code cancels the previous one.</Muted>
+        <Button title={remaining > 0 ? `Resend code in ${remaining}s` : "Resend code"} icon="refresh" variant="secondary" loading={resending} disabled={remaining > 0 || !email.trim()} onPress={resend} />
+      </Card>
+      <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 }}>
+        <Muted>Already confirmed?</Muted>
+        <TextLink title="Log in" onPress={() => router.replace("/(auth)/login")} />
       </View>
-    </Screen>
+    </AuthShell>
   );
 }

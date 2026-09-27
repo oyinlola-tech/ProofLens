@@ -1,13 +1,57 @@
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert, Animated, Platform, Pressable, Text, View } from "react-native";
+import { EvidenceCapture } from "../../../src/components/EvidenceCapture";
+import { Button, Card, ClaimStatusBadge, Eyebrow, FadeIn, Heading, LogoMark, Mono, Muted, Notice, Screen, SectionHeader, SkeletonList, Stepper, TextLink, VerdictBadge, notify, type IconName } from "../../../src/components/ui";
 import { api, ApiError, messageOf } from "../../../src/lib/api";
-import { formatDateTime, truncate } from "../../../src/lib/format";
-import { useTheme } from "../../../src/lib/theme";
+import { formatDateTime, timeAgo, truncate } from "../../../src/lib/format";
+import { font, radius, useTheme } from "../../../src/lib/theme";
 import type { Claim, Document, Evidence, Verification, VerificationSummary } from "../../../src/lib/types";
 import { useAsync } from "../../../src/lib/useAsync";
-import { EvidenceCapture } from "../../../src/components/EvidenceCapture";
-import { Body, Button, ClaimStatusBadge, Heading, Loading, Mono, Muted, Notice, Panel, Screen, SectionHeader, VerdictBadge } from "../../../src/components/ui";
+
+const STAGES: { icon: IconName; text: string }[] = [
+  { icon: "reader-outline", text: "Reading the passages you attached" },
+  { icon: "git-compare-outline", text: "Comparing numbers, dates, names and wording" },
+  { icon: "sparkles-outline", text: "Reasoning over your evidence only" },
+];
+
+/** Shown while a verification runs. The stages describe the pipeline; none is ticked off, because progress is not reported. */
+function Verifying({ elapsed, elsewhere }: { elapsed: number; elsewhere: boolean }) {
+  const t = useTheme();
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: Platform.OS !== "web" }),
+        Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: Platform.OS !== "web" }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+  return (
+    <View accessibilityLiveRegion="polite" style={{ alignItems: "center", gap: 22, paddingVertical: 28 }}>
+      <View style={{ width: 132, height: 132, alignItems: "center", justifyContent: "center" }}>
+        <Animated.View style={{ position: "absolute", width: 132, height: 132, borderRadius: 66, backgroundColor: t.accentSoft, opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0.2] }), transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }] }} />
+        <LogoMark size={72} />
+      </View>
+      <View style={{ gap: 6, alignItems: "center" }}>
+        <Text accessibilityRole="header" style={{ fontFamily: font.display, fontSize: 25, letterSpacing: -0.5, color: t.ink }}>Checking your claim…</Text>
+        {elsewhere ? <Muted style={{ textAlign: "center" }}>Started from another session. This screen updates when it finishes.</Muted> : <Mono style={{ fontSize: 13 }}>{elapsed}s elapsed</Mono>}
+      </View>
+      <Card flat style={{ alignSelf: "stretch", gap: 14 }}>
+        {STAGES.map((s) => (
+          <View key={s.text} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Ionicons name={s.icon} size={19} color={t.accent} />
+            <Text style={{ flex: 1, fontFamily: font.medium, fontSize: 14.5, color: t.ink }}>{s.text}</Text>
+          </View>
+        ))}
+      </Card>
+      <Muted style={{ textAlign: "center", fontSize: 13 }}>If reasoning is unavailable you will be told. A verdict is never invented.</Muted>
+    </View>
+  );
+}
 
 export default function ClaimScreen() {
   const { id, document: initialDocumentId } = useLocalSearchParams<{ id: string; document?: string }>();
@@ -56,13 +100,15 @@ export default function ClaimScreen() {
     try {
       const v = await api<Verification>("/verification/", { method: "POST", body: { claim_id: id }, signal: ctrl.signal });
       setVerifying(false);
+      notify("success");
       router.push({ pathname: "/(app)/verifications/[id]", params: { id: v.id } });
       silentRefresh();
     } catch (e) {
       if ((e as Error).name === "AbortError") return;
       setVerifying(false);
+      notify("error");
       if (e instanceof ApiError && e.status === 409) setVerifyError({ message: "A verification is already running for this claim. Pull to refresh in a moment.", retryable: false });
-      else if (e instanceof ApiError && e.kind === "unavailable") setVerifyError({ message: "Verification unavailable. The reasoning service could not be reached, so no verdict was produced.", retryable: true });
+      else if (e instanceof ApiError && e.kind === "unavailable") setVerifyError({ message: "The reasoning service could not be reached, so no verdict was produced.", retryable: true });
       else if (e instanceof ApiError && e.kind === "network") setVerifyError({ message: "The connection dropped while waiting. ProofLens may still be processing this claim. Pull to refresh before running it again.", retryable: true });
       else setVerifyError({ message: messageOf(e), retryable: true });
     }
@@ -86,82 +132,102 @@ export default function ClaimScreen() {
     ]);
   };
 
+  const running = verifying || analyzingElsewhere;
+  const count = data?.evidence.length ?? 0;
+
+  const footer =
+    data && !running ? (
+      <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Ionicons name={count > 0 ? "checkmark-circle" : "information-circle-outline"} size={17} color={count > 0 ? t.supported : t.inkTertiary} />
+          <Muted style={{ fontSize: 13.5 }}>{count > 0 ? `${count} ${count === 1 ? "piece" : "pieces"} of evidence attached` : "Attach at least one piece of evidence to continue"}</Muted>
+        </View>
+        <Button title={data.verifications.length ? "Check again" : "Check this claim"} size="lg" icon="search" disabled={count === 0} onPress={verify} />
+      </View>
+    ) : undefined;
+
   return (
-    <Screen refreshing={refreshing} onRefresh={refresh}>
-      <Stack.Screen options={{ title: "Claim" }} />
-      {error ? <Notice action={<Button title="Try again" variant="secondary" onPress={reload} />}>{error}</Notice> : null}
-      {loading && !data ? <Loading /> : null}
-      {data ? (
-        <View style={{ gap: 24 }}>
-          <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-              <Muted>What I want to verify</Muted>
-              <ClaimStatusBadge status={data.claim.status} />
+    <Screen refreshing={refreshing} onRefresh={running ? undefined : refresh} footer={footer}>
+      {error ? <Notice title="Could not open this claim" action={<Button title="Try again" icon="refresh" variant="secondary" onPress={reload} />}>{error}</Notice> : null}
+      {loading && !data ? <SkeletonList count={3} /> : null}
+      {data && running ? <Verifying elapsed={elapsed} elsewhere={Boolean(analyzingElsewhere)} /> : null}
+      {data && !running ? (
+        <View style={{ gap: 26 }}>
+          <Stepper current={1} />
+
+          <FadeIn>
+            <View style={{ backgroundColor: t.paper, borderRadius: radius.panel, padding: 20, gap: 12, borderWidth: 1, borderColor: t.line }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Eyebrow>Your claim</Eyebrow>
+                {data.verifications[0]?.verdict ? <VerdictBadge verdict={data.verifications[0].verdict} /> : <ClaimStatusBadge status={data.claim.status} />}
+              </View>
+              <Text selectable style={{ fontFamily: font.displaySemi, fontSize: 22, lineHeight: 29, letterSpacing: -0.4, color: t.ink }}>“{data.claim.text}”</Text>
+              <Muted style={{ fontSize: 13 }}>Written {formatDateTime(data.claim.created_at)}. To change the wording, start a new check.</Muted>
             </View>
-            <Text style={{ fontSize: 21, lineHeight: 29, fontWeight: "600", color: t.ink, letterSpacing: -0.3 }}>&ldquo;{data.claim.text}&rdquo;</Text>
-            <Muted>{formatDateTime(data.claim.created_at)}. To change the claim, create a new one.</Muted>
+          </FadeIn>
+
+          {verifyError ? (
+            <Notice title="No verdict was produced" action={verifyError.retryable ? <Button title="Try again" icon="refresh" variant="secondary" onPress={verify} /> : <Button title="Refresh" icon="refresh" variant="secondary" onPress={refresh} />}>
+              {verifyError.message}
+            </Notice>
+          ) : null}
+
+          <View>
+            <SectionHeader title="Evidence" count={count} />
+            {count === 0 ? (
+              <Muted style={{ marginBottom: 14 }}>Nothing attached yet. Add the passage or document this claim is supposed to rest on.</Muted>
+            ) : (
+              <View style={{ gap: 12, marginBottom: 18 }}>
+                {data.evidence.map((e, i) => {
+                  const name = e.source_document_id ? data.names[e.source_document_id] : undefined;
+                  return (
+                    <Card key={e.id} style={{ gap: 10 }}>
+                      <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+                        <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: t.accentSoft, alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontFamily: font.monoMedium, fontSize: 12, color: t.accent }}>{i + 1}</Text>
+                        </View>
+                        <Text style={{ flex: 1, fontFamily: font.semi, fontSize: 14.5, color: t.ink }} numberOfLines={1}>{name ?? "Document no longer available"}</Text>
+                        {e.source_page ? <Mono>p. {e.source_page}</Mono> : null}
+                      </View>
+                      <View style={{ borderLeftWidth: 3, borderLeftColor: t.accent, paddingLeft: 12 }}>
+                        <Text style={{ fontFamily: font.body, fontSize: 14.5, lineHeight: 22, color: t.inkSecondary }}>{truncate(e.content, 240)}</Text>
+                      </View>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                        {e.source_document_id && name ? (
+                          <TextLink title="View in document" icon="open-outline" onPress={() => router.push({ pathname: "/(app)/documents/[id]", params: { id: e.source_document_id!, page: e.source_page ? String(e.source_page) : "1", q: e.content.slice(0, 300) } })} />
+                        ) : (
+                          <View />
+                        )}
+                        <TextLink title="Remove" icon="trash-outline" color={t.inkSecondary} onPress={() => remove(e)} />
+                      </View>
+                    </Card>
+                  );
+                })}
+              </View>
+            )}
+            <Heading style={{ fontSize: 16, marginBottom: 10 }}>{count === 0 ? "Add evidence" : "Add more evidence"}</Heading>
+            <EvidenceCapture claimId={data.claim.id} initialDocumentId={initialDocumentId} onAttached={silentRefresh} />
           </View>
 
-          <Panel style={{ gap: 10 }}>
-            <Heading>Run verification</Heading>
-            <Muted>{data.evidence.length} {data.evidence.length === 1 ? "piece" : "pieces"} of evidence attached.</Muted>
-            {verifying || analyzingElsewhere ? (
-              <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
-                <Loading label="Verifying… reading the passages, running deterministic checks, and reasoning over the evidence." />
-                {verifying ? <Mono style={{ textAlign: "center" }}>{elapsed}s elapsed</Mono> : <Muted style={{ textAlign: "center" }}>Started from another session. This screen updates when it finishes.</Muted>}
-              </View>
-            ) : null}
-            {verifyError ? (
-              <Notice action={verifyError.retryable ? <Button title="Retry" variant="secondary" onPress={verify} /> : <Button title="Refresh" variant="secondary" onPress={refresh} />}>{verifyError.message}</Notice>
-            ) : null}
-            {!verifying && !analyzingElsewhere ? (
-              <Button title={data.verifications.length ? "Verify again" : "Verify this claim"} onPress={verify} disabled={data.evidence.length === 0} />
-            ) : null}
-            {data.evidence.length === 0 ? <Muted style={{ fontSize: 12 }}>Attach at least one piece of evidence first.</Muted> : null}
-            {data.verifications.length > 0 ? (
-              <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: t.line, paddingTop: 10 }}>
-                <Muted>Previous results</Muted>
-                {data.verifications.slice(0, 5).map((v) => (
-                  <Pressable key={v.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/(app)/verifications/[id]", params: { id: v.id } })} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 4 }}>
+          {data.verifications.length > 0 ? (
+            <View>
+              <SectionHeader title="Earlier verdicts" count={data.verifications.length} />
+              <Card style={{ padding: 0, overflow: "hidden" }}>
+                {data.verifications.slice(0, 5).map((v, i, all) => (
+                  <Pressable
+                    key={v.id}
+                    accessibilityRole="button"
+                    onPress={() => router.push({ pathname: "/(app)/verifications/[id]", params: { id: v.id } })}
+                    style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: i === all.length - 1 ? 0 : 1, borderBottomColor: t.line, backgroundColor: pressed ? t.surfaceMuted : "transparent" })}
+                  >
                     <VerdictBadge verdict={v.verdict} />
-                    <Muted>{formatDateTime(v.completed_at ?? v.created_at)}</Muted>
+                    <Muted style={{ flex: 1, fontSize: 13, textAlign: "right" }} numberOfLines={1}>{timeAgo(v.completed_at ?? v.created_at)}</Muted>
+                    <Ionicons name="chevron-forward" size={16} color={t.inkTertiary} />
                   </Pressable>
                 ))}
-              </View>
-            ) : null}
-          </Panel>
-
-          <View style={{ gap: 10 }}>
-            <SectionHeader title="Evidence I want ProofLens to examine" />
-            {data.evidence.length === 0 ? <Muted>No evidence attached yet. Add a file, paste a passage, or pick from your documents below.</Muted> : null}
-            {data.evidence.map((e, i) => {
-              const name = e.source_document_id ? data.names[e.source_document_id] : undefined;
-              return (
-                <Panel key={e.id} style={{ gap: 6 }}>
-                  <View style={{ flexDirection: "row", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                    <Mono>{String(i + 1).padStart(2, "0")}</Mono>
-                    <Text style={{ color: t.ink, fontWeight: "500", flexShrink: 1 }} numberOfLines={1}>{name ?? "Document no longer available"}</Text>
-                    {e.source_page ? <Mono>page {e.source_page}</Mono> : null}
-                  </View>
-                  <Body style={{ fontSize: 14, lineHeight: 21, color: t.inkSecondary }}>{truncate(e.content, 240)}</Body>
-                  <View style={{ flexDirection: "row", gap: 16 }}>
-                    {e.source_document_id && name ? (
-                      <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: "/(app)/documents/[id]", params: { id: e.source_document_id!, page: e.source_page ? String(e.source_page) : "1", q: e.content.slice(0, 300) } })}>
-                        <Text style={{ color: t.ink, textDecorationLine: "underline" }}>View in document</Text>
-                      </Pressable>
-                    ) : null}
-                    {data.claim.status !== "analyzing" ? (
-                      <Pressable accessibilityRole="button" onPress={() => remove(e)}>
-                        <Text style={{ color: t.inkSecondary }}>Remove</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                </Panel>
-              );
-            })}
-          </View>
-
-          <EvidenceCapture claimId={data.claim.id} initialDocumentId={initialDocumentId} onAttached={silentRefresh} />
+              </Card>
+            </View>
+          ) : null}
         </View>
       ) : null}
     </Screen>
