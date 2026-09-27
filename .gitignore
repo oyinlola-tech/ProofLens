@@ -1,0 +1,197 @@
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ===========================
+# Testing & Coverage
+# ===========================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
+
+# ===========================
+# Type checking & Linting
+# ===========================
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyre/
+
+# ===========================
+# Environment & Secrets
+# ===========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# ===========================
+# Node.js
+# ===========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn/
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.pnp.*
+.yarn-integrity
+
+# ===========================
+# IDEs & Editors
+# ===========================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.nbproject/
+*.iml
+
+# ===========================
+# OS Files
+# ===========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ===========================
+# Logs
+# ===========================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===========================
+# Database
+# ===========================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+
+# ===========================
+# Docker
+# ===========================
+docker-compose.override.yml
+docker-compose.override.yaml
+.docker/
+
+# ===========================
+# Alembic
+# ===========================
+migrations/versions/*.pyc
+
+# ===========================
+# Build & Distribution
+# ===========================
+*.tar.gz
+*.zip
+*.rar
+*.7z
+*.deb
+*.rpm
+
+# ===========================
+# Temporary Files
+# ===========================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+
+# ===========================
+# Jupyter Notebooks
+# ===========================
+.ipynb_checkpoints/
+
+# ===========================
+# pyenv
+# ===========================
+.python-version
+
+# ===========================
+# pip
+# ===========================
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
+
+# ===========================
+# pytest
+# ===========================
+pytest.ini
+conftest.pyc
+
+# ===========================
+# ruff / mypy / pyright
+# ===========================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+
+# ===========================
+# Miscellaneous
+# ===========================
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
