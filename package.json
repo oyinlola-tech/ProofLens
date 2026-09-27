@@ -1,0 +1,18 @@
+{
+  "name": "prooflens",
+  "private": true,
+  "description": "ProofLens monorepo: FastAPI backend (src), Next.js web (apps/web), Expo mobile (apps/mobile).",
+  "scripts": {
+    "dev": "concurrently -k -n backend,web,mobile -c blue,green,magenta \"npm run backend:lan\" \"npm run web\" \"npm run mobile\"",
+    "dev:web": "concurrently -k -n backend,web -c blue,green \"npm run backend\" \"npm run web\"",
+    "dev:mobile": "concurrently -k -n backend,mobile -c blue,magenta \"npm run backend:lan\" \"npm run mobile\"",
+    "backend": "cd src && .venv/bin/python main.py",
+    "backend:lan": "cd src && PROOFLENS_HOST=0.0.0.0 .venv/bin/python main.py",
+    "web": "npm --prefix apps/web run dev",
+    "mobile": "npm --prefix apps/mobile run start",
+    "install:all": "npm install && npm --prefix apps/web install && npm --prefix apps/mobile install && cd src && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'"
+  },
+  "devDependencies": {
+    "concurrently": "^9"
+  }
+}
