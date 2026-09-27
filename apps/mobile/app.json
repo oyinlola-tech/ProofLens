@@ -24,7 +24,21 @@
     "scheme": "prooflens",
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-image",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 140,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F7F5",
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#0F0F11"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
