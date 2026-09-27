@@ -1,0 +1,122 @@
+# ===========================
+# Dependencies
+# ===========================
+node_modules/
+.pnp/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ===========================
+# Expo
+# ===========================
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# ===========================
+# Native Build Folders
+# ===========================
+/ios/
+/android/
+
+# ===========================
+# Native Project Files
+# ===========================
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.crt
+*.pfx
+*.mobileprovision
+*.keystore
+
+# ===========================
+# Metro Bundler
+# ===========================
+.metro-health-check*
+
+# ===========================
+# Testing
+# ===========================
+coverage/
+coverage.json
+
+# ===========================
+# Environment & Secrets
+# ===========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# ===========================
+# TypeScript
+# ===========================
+*.tsbuildinfo
+
+# ===========================
+# Debug Logs
+# ===========================
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.*
+
+# ===========================
+# OS Files
+# ===========================
+.DS_Store
+Thumbs.db
+._*
+Desktop.ini
+
+# ===========================
+# IDEs & Editors
+# ===========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# ===========================
+# EAS Build
+# ===========================
+.eas/
+build/
+
+# ===========================
+# Misc
+# ===========================
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+.cache/
+
+# ===========================
+# Generated
+# ===========================
+AGENTS.md
+CLAUDE.md
+
+# ===========================
+# Flipper (React Native Debugging)
+# ===========================
+.flipper/
