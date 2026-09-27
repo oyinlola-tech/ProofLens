@@ -1,0 +1,368 @@
+@import "tailwindcss";
+
+/*
+  ProofLens design tokens.
+  Theme: auto (system). One accent (cobalt) for interactive focus and links.
+  Verdict colours are semantic state only and never used as decoration.
+  Shape lock: interactive controls 10px, cards and panels 16px, pills for badges.
+*/
+:root {
+  color-scheme: light;
+  --canvas: #f7f7f5;
+  --surface: #ffffff;
+  --surface-muted: #f1f1ee;
+  --surface-raised: #ffffff;
+  --ink: #17171a;
+  --ink-secondary: #5c5c66;
+  --ink-tertiary: #8a8a94;
+  --line: rgba(23, 23, 26, 0.1);
+  --line-strong: rgba(23, 23, 26, 0.2);
+  --accent: #e5502a;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(229, 80, 42, 0.12);
+  --paper: #f4f1ea;
+  --paper-ink: #17171a;
+  --aurora-a: rgba(229, 80, 42, 0.16);
+  --aurora-b: rgba(70, 110, 255, 0.1);
+  --aurora-c: rgba(229, 80, 42, 0.08);
+  --grid-line: rgba(23, 23, 26, 0.06);
+  --scrim: rgba(247, 247, 245, 0.72);
+
+  --supported: #1d7a4c;
+  --supported-soft: #e4f4ea;
+  --partial: #9a6a06;
+  --partial-soft: #fbf1d6;
+  --contradicted: #b42b2b;
+  --contradicted-soft: #fbe6e6;
+  --insufficient: #5c5c66;
+  --insufficient-soft: #ececea;
+
+  --shadow-card: 0 1px 2px rgba(23, 23, 26, 0.04), 0 8px 24px -12px rgba(23, 23, 26, 0.12);
+  --radius-control: 10px;
+  --radius-panel: 16px;
+}
+
+/* Dark tokens. Applied by system preference by default, or explicitly via data-theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --canvas: #0f0f11;
+  --surface: #161619;
+  --surface-muted: #1c1c20;
+  --surface-raised: #1f1f24;
+  --ink: #f2f2f0;
+  --ink-secondary: #a9a9b2;
+  --ink-tertiary: #74747e;
+  --line: rgba(242, 242, 240, 0.1);
+  --line-strong: rgba(242, 242, 240, 0.2);
+  --accent: #ff6a3d;
+  --accent-ink: #0f0f11;
+  --accent-soft: rgba(255, 106, 61, 0.16);
+  --aurora-a: rgba(255, 106, 61, 0.22);
+  --aurora-b: rgba(70, 110, 255, 0.16);
+  --aurora-c: rgba(255, 106, 61, 0.1);
+  --grid-line: rgba(242, 240, 234, 0.05);
+  --scrim: rgba(15, 15, 17, 0.72);
+  --supported: #5fd08f;
+  --supported-soft: rgba(95, 208, 143, 0.14);
+  --partial: #e9b949;
+  --partial-soft: rgba(233, 185, 73, 0.14);
+  --contradicted: #f07171;
+  --contradicted-soft: rgba(240, 113, 113, 0.14);
+  --insufficient: #a9a9b2;
+  --insufficient-soft: rgba(169, 169, 178, 0.14);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0f0f11;
+  --surface: #161619;
+  --surface-muted: #1c1c20;
+  --surface-raised: #1f1f24;
+  --ink: #f2f2f0;
+  --ink-secondary: #a9a9b2;
+  --ink-tertiary: #74747e;
+  --line: rgba(242, 242, 240, 0.1);
+  --line-strong: rgba(242, 242, 240, 0.2);
+  --accent: #ff6a3d;
+  --accent-ink: #0f0f11;
+  --accent-soft: rgba(255, 106, 61, 0.16);
+  --aurora-a: rgba(255, 106, 61, 0.22);
+  --aurora-b: rgba(70, 110, 255, 0.16);
+  --aurora-c: rgba(255, 106, 61, 0.1);
+  --grid-line: rgba(242, 240, 234, 0.05);
+  --scrim: rgba(15, 15, 17, 0.72);
+  --supported: #5fd08f;
+  --supported-soft: rgba(95, 208, 143, 0.14);
+  --partial: #e9b949;
+  --partial-soft: rgba(233, 185, 73, 0.14);
+  --contradicted: #f07171;
+  --contradicted-soft: rgba(240, 113, 113, 0.14);
+  --insufficient: #a9a9b2;
+  --insufficient-soft: rgba(169, 169, 178, 0.14);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-ink: var(--paper-ink);
+  --font-display: var(--font-bricolage), var(--font-geist-sans), ui-sans-serif, sans-serif;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-raised: var(--surface-raised);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-supported: var(--supported);
+  --color-supported-soft: var(--supported-soft);
+  --color-partial: var(--partial);
+  --color-partial-soft: var(--partial-soft);
+  --color-contradicted: var(--contradicted);
+  --color-contradicted-soft: var(--contradicted-soft);
+  --color-insufficient: var(--insufficient);
+  --color-insufficient-soft: var(--insufficient-soft);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --radius-control: var(--radius-control);
+  --radius-panel: var(--radius-panel);
+  --shadow-card: var(--shadow-card);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  scroll-margin-top: 6rem;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Skeleton shimmer, compositor-only. */
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-muted);
+  border-radius: 6px;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--line), transparent);
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* Highlighted passage inside the document viewer. */
+mark.passage {
+  background: var(--partial-soft);
+  color: inherit;
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px var(--partial-soft);
+}
+
+/* ---------- Marketing motion (CSS only, compositor-friendly, reduced-motion safe) ---------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.rise {
+  animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+/* Enter-on-scroll: content is visible by default; only browsers with scroll-driven animations get the reveal. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+}
+.draw-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both;
+}
+.marquee-track {
+  animation: marquee 38s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .reveal,
+  .float {
+    animation: none;
+  }
+  .draw-line {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .marquee-track {
+    animation: none;
+  }
+}
+
+/* Grain on a fixed, non-interactive layer only. */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Aurora backdrop for the hero and closing sections. */
+.aurora {
+  background:
+    radial-gradient(60% 50% at 20% 10%, var(--aurora-a), transparent 60%),
+    radial-gradient(45% 40% at 85% 20%, var(--aurora-b), transparent 60%),
+    radial-gradient(70% 60% at 50% 110%, var(--aurora-c), transparent 60%);
+}
+.grid-lines {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(70% 60% at 50% 40%, #000 30%, transparent 100%);
+}
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+
+@theme inline {
+  --color-scrim: var(--scrim);
+}
+.img-fade {
+  mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+}
+.img-tone {
+  filter: saturate(0.85) contrast(1.05);
+}
+
+/* Theme-conditional visibility, mirrors the token logic. */
+.dark-only {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .dark-only {
+    display: block;
+  }
+  :root:not([data-theme="light"]) .light-only {
+    display: none;
+  }
+}
+:root[data-theme="dark"] .dark-only {
+  display: block;
+}
+:root[data-theme="dark"] .light-only {
+  display: none;
+}
