@@ -183,7 +183,7 @@ There is no verdict called "true". *Insufficient evidence* is its own outcome, s
 | <img src="docs/readme/icons/lens.svg" width="18"> | Result | `/app/verifications/[id]` | Claim analysis, verdict, what the evidence says, why, what it does not establish, conclusion, rule checks, Show me why. |
 | <img src="docs/readme/icons/file.svg" width="18"> | Document viewer | `/app/documents/[id]` | Page navigation and highlighting from `?page=&q=`, with a link back to the result. |
 | <img src="docs/readme/icons/clock.svg" width="18"> | Lists and account | `/app/claims`, `/app/documents`, `/app/history`, `/app/account` | Paginated lists; theme, log out, and sign out everywhere. |
-| <img src="docs/readme/icons/phone.svg" width="18"> | Mobile (Expo) | `apps/mobile` | Same flow: tabs for Home, Claims, Documents, History, Account; file picker; result with Show me why. Not yet captured on a device. |
+| <img src="docs/readme/icons/phone.svg" width="18"> | Mobile (Expo) | `apps/mobile` | Same flow behind a three-slide introduction: tabs for Home, Activity, Library and More; file picker; result with Show me why. Light and dark themes. Checked in a browser at phone size, not yet captured on a device. |
 
 <p align="center">
   <img src="docs/images/home-light.png" alt="ProofLens home page in light mode" width="49%">
@@ -350,7 +350,7 @@ cd src && .venv/bin/python -m pytest -q && .venv/bin/ruff check . && .venv/bin/m
 
 # Web and mobile type-check and build
 cd apps/web && npx tsc --noEmit && npm run build
-cd apps/mobile && npx tsc --noEmit
+cd apps/mobile && npx tsc --noEmit && npx jest
 ```
 
 The screenshots in this README come from a manual end-to-end run in the browser against the real backend: register, email code, claim, PDF upload, passage selection, verify, Show me why, and history.
@@ -359,8 +359,8 @@ The screenshots in this README come from a manual end-to-end run in the browser 
 
 ## <img src="docs/readme/icons/alert.svg" width="24" align="top"> Known limits
 
-- **Frontend and e2e:** there are no frontend or end-to-end tests yet (`tests/e2e/` is empty). In `apps/web`, `npm run lint` is blocked upstream because typescript-eslint does not support TypeScript 7; type-checking and builds pass.
-- **Mobile:** the app has not been captured on a device, and its icon and splash screen are still Expo defaults.
+- **Frontend and e2e:** there are no web frontend or end-to-end tests yet (`tests/e2e/` is empty). The mobile app has unit tests for its logic (formatting, error mapping, passage matching, data loading) but none for its screens. In `apps/web`, `npm run lint` is blocked upstream because typescript-eslint does not support TypeScript 7; type-checking and builds pass.
+- **Mobile:** the app has been checked in a browser at phone size in both themes, but not yet captured on a device.
 - **Evidence placement:** the passage and page of a piece of evidence are chosen by the client and are not yet checked against the stored page text.
 - **Negation:** a negation conflict caps the AI's confidence but does not flip an AI "supported" verdict.
 - **Rate limiting:** `/verification/` and uploads are not rate limited.
