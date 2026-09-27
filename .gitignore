@@ -195,3 +195,7 @@ conftest.pyc
 *.p12
 *.pfx
 *.jks
+
+docs/readme/generate.py
+docs/pitch/build_deck.py
+docs/pitch/video/

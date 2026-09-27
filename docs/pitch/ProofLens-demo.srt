@@ -1,0 +1,35 @@
+1
+00:00:00,400 --> 00:00:04,740
+A source can be real, and still not say what your claim says.
+
+2
+00:00:06,040 --> 00:00:14,900
+This is ProofLens. I start with my claim: the study proves that drinking coffee every day causes a lower risk of heart disease.
+
+3
+00:00:16,701 --> 00:00:27,721
+Then I give it the source. It reads the PDF page by page, and I attach the two passages that matter: the results on page two, and the limitations on page three.
+
+4
+00:00:30,097 --> 00:00:37,757
+When I hit verify, rule-based checks run first. Then an AI model reasons over those passages only.
+
+5
+00:00:39,057 --> 00:00:47,337
+The verdict: contradicted. The study found an association, but it says plainly that it can't establish causation.
+
+6
+00:00:48,637 --> 00:00:58,647
+This is the part that matters. ProofLens tells me what the evidence says, why my claim doesn't fully match it, and what I can honestly conclude instead.
+
+7
+00:00:59,947 --> 00:01:08,057
+And I don't have to take its word for it. Show Me Why opens the source on page three, with the cited passage highlighted.
+
+8
+00:01:09,357 --> 00:01:21,257
+Behind this are 297 backend tests passing, and the AI provider is swappable: this demo ran live on Groq. Next, ProofLens will suggest the right passages for you.
+
+9
+00:01:22,557 --> 00:01:28,627
+ProofLens doesn't just give you a verdict. It shows you the evidence behind it.

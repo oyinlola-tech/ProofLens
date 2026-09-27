@@ -1,0 +1,82 @@
+[
+ {
+  "shot": "intro",
+  "start": 0.0,
+  "end": 5.64,
+  "label": "",
+  "captions": []
+ },
+ {
+  "shot": "claim",
+  "start": 5.64,
+  "end": 16.3,
+  "label": "01  CLAIM",
+  "captions": [
+   "Start with the claim, in your own words"
+  ]
+ },
+ {
+  "shot": "evidence",
+  "start": 16.3,
+  "end": 29.7,
+  "label": "02  EVIDENCE",
+  "captions": [
+   "Upload the source",
+   "Pick the page, keep the passage that matters",
+   "Two passages attached: page 2 and page 3"
+  ]
+ },
+ {
+  "shot": "verify",
+  "start": 29.7,
+  "end": 38.66,
+  "label": "03  ANALYSIS",
+  "captions": [
+   "Rule checks first, then AI reasoning on these passages only"
+  ]
+ },
+ {
+  "shot": "verdict",
+  "start": 38.66,
+  "end": 48.24,
+  "label": "04  VERDICT",
+  "captions": [
+   "Verdict: Contradicted",
+   "The source reports an association, not a cause"
+  ]
+ },
+ {
+  "shot": "explain",
+  "start": 48.24,
+  "end": 59.55,
+  "label": "05  THE EXPLANATION",
+  "captions": [
+   "Why the claim does not fully match",
+   "And what you can honestly conclude"
+  ]
+ },
+ {
+  "shot": "source",
+  "start": 59.55,
+  "end": 68.96,
+  "label": "06  SHOW ME WHY",
+  "captions": [
+   "Every cited passage, with its page and role",
+   "Page 3 of the source, highlighted"
+  ]
+ },
+ {
+  "shot": "proof",
+  "start": 68.96,
+  "end": 82.16,
+  "label": "",
+  "captions": []
+ },
+ {
+  "shot": "outro",
+  "start": 82.16,
+  "end": 89.53,
+  "label": "",
+  "captions": []
+ }
+]

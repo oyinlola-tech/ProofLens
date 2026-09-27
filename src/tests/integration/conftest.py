@@ -8,6 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import shared.infrastructure.database as database
+from app import container
 from app.bootstrap import create_app
 from shared.infrastructure.email import get_email_sender
 from tests.conftest import _test_session_factory
@@ -32,6 +33,10 @@ async def app(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[FastAPI, None]:
     # Point the production get_session at the test database instead of overriding it,
     # so integration tests exercise the real commit/rollback behaviour.
     monkeypatch.setattr(database, "async_session_factory", _test_session_factory)
+    # Never call a live AI provider from tests, whatever keys the local .env holds.
+    # Tests that need model output inject a scripted engine themselves.
+    monkeypatch.setattr(container.settings, "AI_PROVIDER", "none")
+    monkeypatch.setattr(container, "_verification_engine", None)
     application = create_app()
     OUTBOX.clear()
     application.dependency_overrides[get_email_sender] = RecordingEmailSender
