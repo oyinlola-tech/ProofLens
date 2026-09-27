@@ -99,3 +99,5 @@ Thumbs.db
 # ===========================
 public/sitemap*.xml
 public/robots.txt
+
+AGENTS.md
